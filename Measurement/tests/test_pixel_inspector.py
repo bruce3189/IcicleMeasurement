@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets, QtTest
-from test_pseudo_depth import fixture
+from tests.pseudo_fixtures import fixture
 from icicle_measure.pseudo_depth import compose_scene, _map_relative
 from icicle_measure.pixel_inspector import inspect_pixel, pixel_text
 from icicle_measure.pseudo_gui import EditView, PseudoDepthDialog

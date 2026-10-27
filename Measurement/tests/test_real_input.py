@@ -19,7 +19,7 @@ from icicle_measure.core import measure_frame
 from icicle_measure.gui import DepthTerrainCanvas, MainWindow, configure_font
 from icicle_measure.live_gui import CameraDialog
 from icicle_measure.render import overlay
-from test_measure import temporary_directory
+from tests.helpers import temporary_directory
 
 
 def packet(sequence=1):

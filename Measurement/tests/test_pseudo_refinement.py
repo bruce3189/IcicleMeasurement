@@ -3,8 +3,8 @@ from dataclasses import replace
 import unittest
 import cv2
 import numpy as np
-from test_pseudo_depth import fixture
-from test_measure import temporary_directory
+from tests.pseudo_fixtures import fixture
+from tests.helpers import temporary_directory
 from icicle_measure.pseudo_depth import compose_scene, export_project, load_project
 from icicle_measure.pseudo_geometry import apply_background_planes, boundary_evidence, matches_prompts
 

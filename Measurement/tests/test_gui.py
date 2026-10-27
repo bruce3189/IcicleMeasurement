@@ -10,7 +10,7 @@ from icicle_measure.gui import MainWindow, ConfigDialog, configure_font
 from icicle_measure import Config
 from icicle_measure.simulator import generate
 from icicle_measure.io import save_simulation
-from test_measure import temporary_directory
+from tests.helpers import temporary_directory
 
 
 class GuiTests(unittest.TestCase):

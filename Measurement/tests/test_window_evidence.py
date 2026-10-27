@@ -13,7 +13,7 @@ from icicle_measure.evidence import (subgroup_evidence, plane_evidence,
                                      growth_evidence, coverage_evidence)
 from icicle_measure.gui import DiagnosticsPlot, configure_font
 from icicle_measure.io import export_results
-from test_measure import temporary_directory
+from tests.helpers import temporary_directory
 
 
 class WindowEvidenceTests(unittest.TestCase):

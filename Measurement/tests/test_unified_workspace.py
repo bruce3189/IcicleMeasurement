@@ -6,8 +6,8 @@ from dataclasses import replace
 from unittest.mock import patch
 import numpy as np
 from PyQt5 import QtCore, QtWidgets, QtTest
-from test_pseudo_depth import fixture
-from test_measure import temporary_directory
+from tests.pseudo_fixtures import fixture
+from tests.helpers import temporary_directory
 from icicle_measure.pseudo_depth import compose_scene
 from icicle_measure.pseudo_gui import PseudoDepthPanel
 from icicle_measure.gui import MainWindow

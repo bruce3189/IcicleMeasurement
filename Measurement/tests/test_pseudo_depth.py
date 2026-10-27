@@ -12,37 +12,15 @@ import cv2
 import numpy as np
 from PyQt5 import QtWidgets, QtCore, QtTest
 from icicle_measure.models import Detection, Intrinsics
-from icicle_measure.pseudo_depth import (PseudoConfig, PseudoScene, compose_scene, letterbox,
-    transformed_intrinsics, virtual_intrinsics, to_z16, export_project, load_project)
+from icicle_measure.pseudo_depth import (PseudoConfig, compose_scene, letterbox,
+    transformed_intrinsics, to_z16, export_project, load_project)
 from icicle_measure.pseudo_gui import PseudoDepthDialog
 from icicle_measure.pseudo_models import _fit_mask, run_inference
 from icicle_measure.io import load_bundle, save_input_bundle, read_json, write_json, export_results
 from icicle_measure.core import measure_frame
 from icicle_measure.gui import MainWindow, configure_font
-from test_measure import temporary_directory
-
-
-def fixture(width=320, height=240):
-    cfg = PseudoConfig(width=width, height=height)
-    valid = np.zeros((height, width), bool)
-    valid[10:height - 10, 10:width - 10] = True
-    rgb = np.zeros((height, width, 3), np.uint8)
-    rgb[valid] = (150, 160, 170)
-    q = np.broadcast_to(np.linspace(.1, 1., width, dtype=np.float32), (height, width)).copy()
-    masks = np.zeros((2, height, width), bool)
-    x, y0, y1 = width // 2, height // 5, height * 4 // 5
-    masks[0, y0:y1 + 1, x - 5:x + 6] = True
-    q[masks[0]] = 3.
-    detections = [Detection('ice-A', (x - 12., y0 - 3., x + 15., y1 + 3.),
-                            [(x + 10., y1), (x, y0)]),
-                  Detection('ice-B', (20., 20., 35., 70.), [(25., 60.), None])]
-    transform = {'source_size': [width, height], 'output_size': [width, height],
-                 'resized_size': [width, height], 'offset': [0, 0], 'scale_xy': [1., 1.],
-                 'pixel_center_translation': [0., 0.]}
-    scene = PseudoScene(rgb, q, masks, valid, detections, virtual_intrinsics(cfg, transform), transform,
-                        {'fixture': 'no model inference'}, original_masks=masks.copy(),
-                        background_offset=np.zeros(valid.shape, np.float32))
-    return scene, cfg
+from tests.helpers import temporary_directory
+from tests.pseudo_fixtures import fixture
 
 
 class PseudoDepthTests(unittest.TestCase):

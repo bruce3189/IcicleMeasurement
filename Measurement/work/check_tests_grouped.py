@@ -8,7 +8,7 @@ import sys
 ROOT=Path(__file__).resolve().parents[1]
 rows=[]
 for path in sorted((ROOT/'tests').glob('test_*.py')):
-    result=subprocess.run([sys.executable,'-m','unittest','discover','-s','tests','-p',path.name],
+    result=subprocess.run([sys.executable,'-m','unittest',f'tests.{path.stem}'],
         cwd=str(ROOT),capture_output=True,text=True)
     output=result.stdout+result.stderr
     match=re.search(r'Ran (\d+) tests?',output)
