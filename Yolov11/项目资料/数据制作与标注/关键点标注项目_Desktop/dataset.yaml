@@ -1,0 +1,11 @@
+path: .
+train: splits/train.txt
+val: splits/val.txt
+test: splits/test.txt
+names:
+  0: complete
+  1: partial
+  2: severe_overlap
+kpt_shape: [3, 3]
+kpt_names:
+  0: [tip, base_left, base_right]

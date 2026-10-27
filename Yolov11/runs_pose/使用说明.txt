@@ -1,0 +1,67 @@
+冰凌 Pose 训练工作区说明
+========================
+
+一、环境
+--------
+新建的 conda 环境：D:\318\envs\yolo26
+  - 由 D:\318 这套 Miniconda 创建（和 envs\yolov11 同级，互不影响）
+  - Python 3.9.25 / ultralytics 8.4.183 / torch 2.8.0+cpu
+  - conda activate yolo26  （或直接用 D:\318\envs\yolo26\python.exe）
+  - 旧的 envs\yolov11（ultralytics 8.3.151）保持原样，可随时回退
+
+权重：D:\yolov11\weights\
+  - yolo26n-pose.pt   7.9 MB
+  - yolo11n-pose.pt   6.3 MB
+
+注意：D:\yolov11 目录里有一份 ultralytics 源码目录，会遮蔽安装包。
+所以训练脚本必须从其他目录运行（本目录就是为此准备的）。
+
+二、训练
+--------
+YOLO26（当前已启动）：
+  cd /d D:\yolov11\runs_pose
+  D:\318\envs\yolo26\python.exe -u train_pose26.py > train26.log 2>&1
+
+YOLO11（对照组，想跑再跑）：
+  cd /d D:\yolov11\runs_pose
+  D:\318\envs\yolov11\python.exe -u train_pose11.py > train11.log 2>&1
+
+关键参数（两个脚本一致，便于公平对比）
+  imgsz=1280 + rect=True   长边 1280，按原图比例成批（实际画布 576x1280）
+  batch=2, workers=0       本机可用内存只有 5~6 GB，再大会被系统杀掉
+  epochs=100, patience=40, seed=42
+  fliplr=0 / flipud=0      左右翻转会把 base_left 与 base_right 互换，必须关
+  mosaic=0                 细长目标拼接会造出断头样本，初级模型先关
+
+结果目录：
+  D:\yolov11\runs_pose\ice80_yolo26\   （weights\best.pt、results.csv、各类曲线）
+  D:\yolov11\runs_pose\ice80_yolo11\
+
+三、对比
+--------
+  cd /d D:\yolov11\runs_pose
+  D:\318\envs\yolo26\python.exe compare_pose.py
+
+输出每个模型的：真实框/预测框/匹配数、关键点平均像素误差、
+按框高归一化误差、PCK@5%、PCK@10%。
+（YOLO11 的 best.pt 用 8.4 读取可能报版本差异，届时用 envs\yolov11 的 python 跑同一脚本）
+
+四、这次踩到并已修掉的坑
+------------------------
+1. dataset.yaml 原来写 path: . ，会按“当前工作目录”解析，换目录就找不到图 → 已改成绝对路径。
+2. train/val 的 imgsz 只能传整数，传 [1536,640] 会被强制改成 1536 方形，
+   1644x3840 的图会有一半是填充 → 改用 imgsz=1280 + rect=True。
+3. batch=8 在 1536 方形下直接把内存吃爆，进程被系统静默杀掉（没有 traceback）→ 降到 batch=2。
+4. GitHub 直连下载权重会被 TLS 断开 → 用 ghfast.top 镜像下载。
+
+五、动态进度看板
+----------------
+启动（一次即可，服务常驻）：
+  D:/318/envs/yolo26/python.exe D:/yolov11/runs_pose/dashboard/server.py 8890
+浏览器打开：
+  http://localhost:8890
+
+特性：每 5 秒自动拉一次 results.csv，进度条/指标卡/精度曲线/损失曲线实时更新；
+右上角下拉可切换 ice80_yolo26、ice80_yolo11 等任意运行目录；
+状态点含义：绿=训练中（180 秒内有更新）、橙=疑似卡住、红=已停止、紫=已完成。
+端口被占用时换个数字，如 ... server.py 8891。

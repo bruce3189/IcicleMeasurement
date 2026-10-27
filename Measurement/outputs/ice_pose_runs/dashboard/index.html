@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>冰凌 Pose 训练看板</title>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --card: #ffffff;
+    --line: rgba(0,0,0,0.10);
+    --text: #1d1d1b;
+    --muted: #77776f;
+    --purple: #534AB7;
+    --coral: #D85A30;
+    --gray: #888780;
+    --ok: #1D9E75;
+    --warn: #BA7517;
+    --bad: #A32D2D;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 28px 40px;
+    background: var(--bg); color: var(--text);
+    font-family: "Microsoft YaHei", -apple-system, "Segoe UI", sans-serif;
+  }
+  .head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: .2px; }
+  .sub { font-size: 12px; color: var(--muted); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 3px 10px;
+          border-radius: 999px; background: rgba(0,0,0,0.05); color: var(--muted); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gray); }
+  .dot.running { background: var(--ok); animation: pulse 1.6s infinite; }
+  .dot.finished { background: var(--purple); }
+  .dot.idle { background: var(--warn); }
+  .dot.stopped { background: var(--bad); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+  .bar-wrap { margin: 14px 0 20px; }
+  .bar { height: 8px; background: rgba(0,0,0,0.07); border-radius: 999px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--purple); transition: width .6s ease; }
+  .bar-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  .cards { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 12px; margin-bottom: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .card .k { font-size: 12px; color: var(--muted); }
+  .card .v { font-size: 24px; font-weight: 600; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .card .u { font-size: 12px; font-weight: 400; color: var(--muted); }
+
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 8px; margin-bottom: 18px; }
+  .panel h2 { font-size: 13px; font-weight: 600; margin: 0 0 10px; color: #33332f; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .chart-box { position: relative; width: 100%; }
+  #chart1 { height: 300px; }
+  #chart2 { height: 200px; }
+  select { font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 7px;
+           border: 1px solid var(--line); background: #fff; color: var(--text); }
+  .err { color: var(--bad); font-size: 13px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div>
+      <h1>冰凌 Pose 训练看板</h1>
+      <div class="sub" id="subline">正在连接…</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <select id="runSel"></select>
+      <span class="pill"><span class="dot" id="dot"></span><span id="statusText">读取中</span></span>
+    </div>
+  </div>
+
+  <div class="bar-wrap">
+    <div class="bar"><i id="prog"></i></div>
+    <div class="bar-meta"><span id="epText">—</span><span id="etaText">—</span></div>
+  </div>
+
+  <div class="cards">
+    <div class="card"><div class="k">关键点 mAP50</div><div class="v" id="m1">—</div></div>
+    <div class="card"><div class="k">关键点 mAP50-95</div><div class="v" id="m2">—</div></div>
+    <div class="card"><div class="k">框 mAP50</div><div class="v" id="m3">—</div></div>
+    <div class="card"><div class="k">每轮耗时</div><div class="v" id="m4">—<span class="u"> 秒</span></div></div>
+    <div class="card"><div class="k">最佳轮次</div><div class="v" id="m5">—</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>精度曲线</h2>
+    <div class="legend">
+      <span><i class="sw" style="background:#534AB7"></i>关键点 mAP50</span>
+      <span><i class="sw" style="background:#D85A30"></i>关键点 mAP50-95</span>
+      <span><i class="sw" style="background:#888780"></i>框 mAP50</span>
+    </div>
+    <div class="chart-box"><canvas id="chart1"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <h2>训练损失</h2>
+    <div class="legend">
+      <span><i class="sw" style="background:#185FA5"></i>框损失</span>
+      <span><i class="sw" style="background:#BA7517"></i>关键点损失</span>
+    </div>
+    <div class="chart-box"><canvas id="chart2"></canvas></div>
+  </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const C = { purple:'#534AB7', coral:'#D85A30', gray:'#888780', blue:'#185FA5', amber:'#BA7517' };
+let currentRun = null, charts = {}, runsLoaded = false;
+
+function mk(id, cfg) {
+  if (charts[id]) { charts[id].data = cfg.data; charts[id].update('none'); return charts[id]; }
+  charts[id] = new Chart(document.getElementById(id), cfg);
+  return charts[id];
+}
+
+const baseOpts = {
+  responsive: true, maintainAspectRatio: false, animation: false,
+  interaction: { mode: 'index', intersect: false },
+  plugins: { legend: { display: false } },
+  elements: { point: { radius: 0, hitRadius: 8 } }
+};
+
+async function loadRuns() {
+  try {
+    const r = await fetch('/api/runs');
+    const d = await r.json();
+    const sel = document.getElementById('runSel');
+    const keep = sel.value;
+    sel.innerHTML = d.runs.map(n => `<option value="${n}">${n}</option>`).join('');
+    if (keep && d.runs.includes(keep)) sel.value = keep;
+    if (!currentRun) currentRun = sel.value;
+    sel.onchange = () => { currentRun = sel.value; charts = {}; tick(true); };
+    runsLoaded = true;
+  } catch (e) { /* 忽略 */ }
+}
+
+async function tick(force) {
+  const q = currentRun ? `?run=${encodeURIComponent(currentRun)}` : '';
+  let d;
+  try {
+    const r = await fetch('/api/results' + q);
+    d = await r.json();
+  } catch (e) {
+    document.getElementById('statusText').textContent = '服务断开';
+    document.getElementById('dot').className = 'dot stopped';
+    return;
+  }
+  if (d.error) {
+    document.getElementById('subline').innerHTML = '<span class="err">' + d.error + '</span>';
+    return;
+  }
+  if (!runsLoaded) await loadRuns();
+  if (d.run !== currentRun) { currentRun = d.run; document.getElementById('runSel').value = d.run; }
+
+  const rows = d.rows, last = rows[rows.length - 1];
+  const pct = d.total ? (d.done / d.total * 100) : 0;
+  document.getElementById('prog').style.width = pct.toFixed(1) + '%';
+  document.getElementById('epText').textContent = `第 ${d.done} / ${d.total} 轮（${pct.toFixed(0)}%）`;
+  document.getElementById('etaText').textContent = d.done >= d.total
+      ? '已训练完成'
+      : `预计还需 ${d.eta_min >= 60 ? (d.eta_min/60).toFixed(1) + ' 小时' : d.eta_min + ' 分钟'}`;
+
+  const st = { running:['训练中','running'], finished:['已完成','finished'], idle:['疑似卡住','idle'], stopped:['已停止','stopped'] }[d.status] || ['未知',''];
+  document.getElementById('statusText').textContent = st[0];
+  document.getElementById('dot').className = 'dot ' + st[1];
+  document.getElementById('subline').textContent =
+    `${d.run} · 数据更新于 ${d.csv_age < 60 ? Math.round(d.csv_age) + ' 秒前' : Math.round(d.csv_age/60) + ' 分钟前'} · 页面每 5 秒自动刷新（${d.server_time}）`;
+
+  document.getElementById('m1').textContent = last.pose50.toFixed(3);
+  document.getElementById('m2').textContent = last.pose5095.toFixed(3);
+  document.getElementById('m3').textContent = last.box50.toFixed(3);
+  document.getElementById('m4').innerHTML = d.per_epoch + '<span class="u"> 秒</span>';
+  document.getElementById('m5').innerHTML = d.best ? `#${d.best.epoch}<span class="u"> mAP50 ${d.best.pose50.toFixed(3)}</span>` : '—';
+
+  const labels = rows.map(r => r.epoch);
+  mk('chart1', {
+    type: 'line',
+    data: { labels, datasets: [
+      { label:'关键点 mAP50', data: rows.map(r => r.pose50), borderColor: C.purple, borderWidth: 2 },
+      { label:'关键点 mAP50-95', data: rows.map(r => r.pose5095), borderColor: C.coral, borderWidth: 2, borderDash: [6,4] },
+      { label:'框 mAP50', data: rows.map(r => r.box50), borderColor: C.gray, borderWidth: 1.5, borderDash: [2,3] }
+    ]},
+    options: { ...baseOpts, scales: {
+      x: { title:{ display:true, text:'轮次' }, grid:{ color:'rgba(0,0,0,0.05)' } },
+      y: { beginAtZero:true, grid:{ color:'rgba(0,0,0,0.05)' }, ticks:{ callback: v => v.toFixed(2) } }
+    }}
+  });
+
+  mk('chart2', {
+    type: 'line',
+    data: { labels, datasets: [
+      { label:'框损失', data: rows.map(r => r.box_loss), borderColor: C.blue, borderWidth: 2 },
+      { label:'关键点损失', data: rows.map(r => r.pose_loss), borderColor: C.amber, borderWidth: 2, borderDash: [6,4] }
+    ]},
+    options: { ...baseOpts, scales: {
+      x: { title:{ display:true, text:'轮次' }, grid:{ color:'rgba(0,0,0,0.05)' } },
+      y: { beginAtZero:true, grid:{ color:'rgba(0,0,0,0.05)' } }
+    }}
+  });
+}
+
+loadRuns().then(() => tick(true));
+setInterval(() => tick(false), 5000);
+</script>
+</body>
+</html>

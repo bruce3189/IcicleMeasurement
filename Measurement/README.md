@@ -1,0 +1,169 @@
+# 冰凌双端点 RGB-D 测距工作台
+
+> **接手或继续本项目前，请先读 [AGENTS.md](AGENTS.md)**：当前进度、八条禁改红线、任务队列。
+
+独立深度估计模块、PyQt5 桌面界面和可复现模拟器。分别估计两个端点的 Z，再沿原像素射线反投影得到 XYZ，计算欧氏距离。现已支持离线原始深度比例、可选 D435i 采集和两点 YOLO11 检测。新增功能与真实输入要求见 [升级说明](docs/rgbd-upgrade.md)。
+
+代码职责、界面组件位置、兼容入口及模块化前后验证见 [模块维护地图](docs/module-map.md)。
+
+## 启动
+
+新增 **RGB 生成伪深度** 入口：单目模型背景、逐实例掩膜、可编辑假想冰凌表面以及 D435i Z16 格式的完整/带误差两份数据。使用方法和数据边界见 [伪深度说明](docs/pseudo-depth.md)，六张真实 RGB 样例总览位于 `outputs/pseudo_depth_samples/review.html`。
+
+在本目录双击 `launch_measurement.cmd`。该启动器优先使用本机已经安装 PyQt5、NumPy、OpenCV 的 `D:\318\pythonw.exe`，其他机器回退到 `python`。
+
+也可以在本目录终端运行：
+
+```powershell
+python -m icicle_measure
+# 直接载入已生成的示例
+python -m icicle_measure outputs/rgbd_validation/example_input/input.json
+```
+
+新环境依赖安装：`python -m pip install -r requirements.txt`。当前环境已经具备所需依赖，无需安装。建议 Python 3.9 或更新版本。
+
+### 界面使用
+
+1. 选择模拟场景，点“生成模拟”，再点“开始计算”。也可点“导入输入包”载入 `input.json`。
+2. 结果列表每个端点一行。只有两个端点均通过才显示目标距离；缺少关键点的框显示跳过。
+3. 点选端点，左侧显示最终窗口和像素簇。右侧默认是 3D 深度点云，其他分页为经验深度分布、深度频数与候选均值、扩窗样本量、测距判定和原始记录。绿色目标候选属于近簇，不能将数量相加；经验分布曲线每行峰高独立缩放，数量比较看 n。它不是正态拟合或概率。
+4. 图像滚轮缩放、拖动平移、双击恢复适配。检测框、关键点、距离与深度显示均可切换。
+5. “参数设置”打开可编辑 JSON 配置；所有阈值均开放。修改后旧结果清除，重新计算；参数可单独保存/加载。
+6. “导出结果”保存 `measurement.json`、`measurement.csv`、`config.json`、`overlay.png`。同名结果文件会覆盖；建议每次选独立文件夹。
+7. “取消”在下个窗口计算边界停止。已完成目标保留，JSON 顶层 `cancelled=true` 标识部分结果；中断目标没有距离。关闭计算中的窗口会先取消工作线程。
+
+## 输入格式
+
+必须提供**原始 RGB、单通道数值深度、结构化检测结果、内参及单位**。画有框的图片不能用于恢复精确关键点；伪彩色深度预览图也不是数值深度。
+
+### 输入包 `input.json`
+
+路径相对于该 JSON；支持中文文件路径。深度支持 `.npy`、单通道 PNG/TIFF（例如 uint16 毫米）。RGB 支持常见图像格式。
+
+```json
+{
+  "rgb": "rgb.png",
+  "depth": "depth.npy",
+  "detections": "detections.json",
+  "depth_unit": "m",
+  "depth_kind": "z",
+  "aligned_to_rgb": true,
+  "undistorted": true,
+  "valid_range_m": [0.1, 10.0],
+  "keypoint_min": 0.0,
+  "intrinsics": {"fx": 320.0, "fy": 320.0, "cx": 159.5, "cy": 119.5}
+}
+```
+
+这里的内参仅是 320×240 模拟图像的示例，**不能直接用于真实相机**。内参必须对应当前对齐且去畸变后的图像。`depth_unit` 接受 `m/mm` 或使用升级说明中的 `raw` 加显式比例，程序不会猜测单位。`valid_range_m` 始终以米填写。离线数据必须预先配准、去畸变；新增 D435i 采集适配器会完成这些处理。
+
+“分别导入文件”依次选择 RGB、深度、检测标注和上述元数据 JSON；元数据中的三个路径字段在这种模式下不使用。
+
+### JSON 检测结果
+
+```json
+{
+  "detections": [
+    {
+      "id": "ice-1",
+      "bbox": [148, 40, 172, 200],
+      "keypoints": [[160, 200], [160, 40]]
+    }
+  ]
+}
+```
+
+`bbox` 为像素 `x1,y1,x2,y2`，关键点按 **尖端、根部** 排列。坐标可为小数，`null` 为缺失；可用 `[x,y,confidence]` 或 `{"x":160,"y":200,"confidence":0.9}`。有置信度时 `confidence <= keypoint_min` 判为缺失；默认仅排除零/负值，按模型实际情况调整阈值。ID 必须唯一。
+
+### YOLO Pose 标签
+
+支持此前项目导出的 11 或 12 列归一化格式：
+
+```text
+class cx cy width height tip_x tip_y tip_conf base_x base_y base_conf [box_conf]
+```
+
+`detections` 可以指向该 `.txt` 文件。关键点置信度/可见性为 0 的点视为缺失。此适配器固定为两个关键点，不接受其他关键点数量的 YOLO 标签。
+
+## 算法规则
+
+扩窗包含端点关联、目标内部双群、均值代表性、新增证据与空间覆盖检查。默认“近簇均值近似”允许在当前窗内关联目标，平面偏差和新增区域均值差仅提示；可切换“严格局部一致”。原短边上限、较大样本门槛和算术均值输出保留；细则及配置见 [两端点扩窗证据判定](docs/window-evidence.md)。
+
+1. 每个端点独立使用方形窗口，配置半径依次为 3、5、8、12、18、25、35、45、60 像素；实际半径还会按所属检测框较短边截断，保证窗口边长 `2r+1` 不超过框宽。框宽定义为检测框宽、高中的较小值。窗口仍限制在图像和外扩 10 像素的框内；窗口完全相同时不重复计算稳定性。报告记录截断后的实际半径；到达短边上限仍未通过分簇、样本量、稳定性等判定时立即拒绝，不继续扩窗。
+2. 去除 0、NaN、Inf 及有效范围外的深度。对剩余深度执行一维 Otsu（精确排序边界最大类间方差），产生近/远候选簇。
+3. 各簇以中位数/MAD 去噪，标准差估计下限 1 mm，保留中位数 ±3.5 倍稳健标准差的样本。分簇本身不构成通过依据。
+4. 检查近远簇分离度 ≥3、远簇 10% 分位与近簇 90% 分位间隔 ≥20 mm、近簇和远簇去噪后各至少 64 个样本。
+5. 默认近簇优先。须在框内且端点线段附近提供空间支持，带宽 `max(3 px, 框宽×15%)`；目标八连通分量须有至少 6 个支持像素。按端点关联半径、锚区支持及整体支持排序；若另一分量的锚区支持数达到其 50%，且均值相差至少 20 mm，则视为归属不明确。选中分量也必须满足样本阈值。
+6. 对比相邻窗口目标均值变化和共有有效像素的成员 Jaccard。中心容差 `max(5 mm,Z×0.5%)`；Jaccard 硬阈值 0.85。
+7. 综合评分取分离/样本/中心/成员评分最小值：`min(1,S/4)`、`min(1,min_count/100)`、`exp(-0.5*(delta/tolerance)^2)`、`min(1,J/0.95)`。`min_count` 是近簇、远簇和目标分量三者中的最小样本数。首个窗口没有稳定性比较，评分为 0。连续两次扩窗比较全部通过且总分 ≥0.8 后停止。
+8. 用**当前选中目标连通分量的去噪后全部样本算术平均值**作为端点 Z。两个端点各自计算，保留原始关键点像素，不向内移动端点。
+
+样本硬阈值为 64；默认评分要求 ≥0.8，而样本满分数为 100，因此通过时近簇、远簇和目标分量通常都至少要有 80 个去噪后样本。最终门槛以 `min_count` 和其它评分中最弱的一项为准。搜索达到 60 像素仍不够样本时，端点拒绝输出。
+
+```text
+X = (u-cx)*Z/fx
+Y = (v-cy)*Z/fy
+L = norm(XYZ_tip - XYZ_base)
+```
+
+相机坐标：X 向右、Y 向下、Z 向前。Z 是光轴深度，不是到相机中心的径向距离；后者为 `sqrt(X²+Y²+Z²)`。内部和 JSON/CSV 均使用米，界面深度和长度用毫米，XYZ 详情使用米。
+
+### 结果状态
+
+- `accepted`：通过规则；两端点通过才能输出目标长度。
+- `rejected`：证据不足、分离不够、稳定性不足或归属不明确；没有有效深度/坐标/长度值。历史候选均值仍保留用于诊断。
+- `skipped`：关键点不完整、坐标越界、无效框或重合关键点。
+- `cancelled`：用户中断。顶层 `cancelled` 同时表示整帧结果未完成。
+
+`measurement.json` 包含内参、参数快照、原像素、每个窗口的分项评分/判定/拒绝原因，以及近/远/目标/有效像素 ID。ID 编码为 `y*图像宽度+x`，可以反查全部实际使用样本。报告包含大量审计像素，尺寸会比普通预测标签大。
+
+## 模块接口与替换
+
+```python
+from icicle_measure import Frame, Detection, Intrinsics, Config, Strategies, measure_frame
+
+result = measure_frame(frame, detections, intrinsics, Config())
+# 可选：cancel=lambda: stop_event.is_set(), progress=lambda done,total: ...
+```
+
+`Frame.rgb` 为 RGB uint8 H×W×3；`Frame.depth_m` 为同尺寸 H×W 数组，已经转换为米。算法层完全不依赖 PyQt。
+
+| 文件 | 职责 |
+|---|---|
+| `icicle_measure/models.py` | 输入/结果类型、Config 及验证 |
+| `icicle_measure/core.py` | 分簇、空间支持、跨窗稳定性、评分、反投影 |
+| `icicle_measure/io.py` | 输入包、YOLO/JSON、单位转换、结果导出 |
+| `icicle_measure/simulator.py` | 固定随机种子、模拟场景与真值 |
+| `icicle_measure/render.py` | RGB/深度叠图 |
+| `icicle_measure/gui.py` | 工作线程、表格、曲线、配置与界面 |
+
+`Strategies` 可注入以下函数，默认签名及实现见 `core.py`：
+
+- `clusterer(depths, config) -> labels`：0 为丢弃、1 为近簇、2 为远簇。
+- `selector(ids, depths, labels, shape, detection, config) -> (bool_mask, reason)`：返回所选目标像素及歧义原因，可替换为掩膜约束。
+- `scorer(separation, min_count, delta, tolerance, jaccard, config) -> dict`：返回 0..1 的各项评分，调用方取最小值。
+- `aggregator(depths) -> float`：默认算术平均；替换时须同步修改对外估计含义说明。
+
+## 验收
+
+```powershell
+python -m unittest discover -s tests -v
+python -m icicle_measure.benchmark --output outputs/rgbd_validation
+```
+
+测试涵盖无噪声几何、毫米量化、算术均值、空洞/误读背景、噪声、拒绝条件、成员变化、边界裁剪、双端点联合门控、无效输入、逐样本图数据与样本门槛、导入/导出、Qt 工作线程取消和重算。Qt 测试使用真实控件与事件循环，默认以 offscreen 平台运行；本机也已设置 `QT_QPA_PLATFORM=windows` 实际启动原生窗口并生成截图。文件选择框在测试中注入固定路径；真实文件读取、计算、控件点击、参数修改、取消和导出均实际执行。
+
+`outputs/rgbd_validation/` 包含：
+
+- `benchmark.json`：30 个固定随机种子、3 mm 标准差噪声，报告通过率和误差；验收要求通过率至少 90%，通过结果端点误差 ≤10 mm、长度误差 ≤20 mm。
+- `example_input/`：可直接导入的多目标示例及 `truth.json`。
+- `example_result/`：对应测距结果与标注图。
+- `gui_preview.png`：完整界面及逐样本分布页。
+- `gui_preview_samples.png`、`gui_preview_histogram.png`、`gui_preview_counts.png`、`gui_preview_decision.png`：四个诊断页截图。
+- `test_results.txt`：最近一次 Windows 原生窗口回归测试日志。
+
+## 适用边界
+
+该方法假定冰凌位于背景前方、窗口内仍存在足够真实目标深度。透明物体如果全部返回背景或折射产生稳定错误深度，统计分簇无法恢复不存在的观测，也不能证明近簇必然是冰凌。当前规则可能拒绝正确但单峰的局部深度。
+
+算法只检查已搜索的窗口，达到条件后停止；不会检查更远处尚未出现的干扰。邻域均值赋给原端点射线依赖局部表面近似，真实尖端曲率、配准误差、关键点误差和折射都会带来测距误差。模拟场景只验证软件和数学流程，**不代表真实透明冰凌达到毫米级精度**。上相机后须用带真值的实际数据调整参数并评估拒绝率与误差。

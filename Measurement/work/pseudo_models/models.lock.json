@@ -1,0 +1,32 @@
+{
+  "models": {
+    "Depth-Anything-V2": {
+      "repository": "https://github.com/DepthAnything/Depth-Anything-V2",
+      "revision": "a561b849ebae10a6f5ef49e26c83cbbcd36c71bf"
+    },
+    "MobileSAM": {
+      "repository": "https://github.com/ChaoningZhang/MobileSAM",
+      "revision": "f706ad9c4eb7f219c00d9050e46328518ffb65d2"
+    }
+  },
+  "weights": {
+    "depth_anything": {
+      "file": "work\\pseudo_models\\depth_anything_v2_vits.pth",
+      "sha256": "715fade13be8f229f8a70cc02066f656f2423a59effd0579197bbf57860e1378",
+      "bytes": 99218434
+    },
+    "mobile_sam": {
+      "file": "work\\pseudo_models\\MobileSAM\\weights\\mobile_sam.pt",
+      "sha256": "6dbb90523a35330fedd7f1d3dfc66f995213d81b29a5ca8108dbcdd4e37d6c2f",
+      "bytes": 40728226
+    }
+  },
+  "optional_packages": [
+    "timm==0.9.16",
+    "huggingface-hub==0.26.2",
+    "safetensors==0.5.3"
+  ],
+  "python": "C:\\Users\\Administrator\\Documents\\Codex\\2026-10-24\\continuing-from-research-the-user-s\\work\\pseudo_env\\Scripts\\python.exe",
+  "base_python": "D:\\318\\python.exe",
+  "device": "cpu"
+}

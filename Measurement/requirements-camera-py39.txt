@@ -1,0 +1,3 @@
+# Optional, only for D435i acquisition under the existing Python 3.9.
+# Official wrapper notes limit Python 3.9 distributions to releases <=2.57.4.
+pyrealsense2==2.56.5.9235

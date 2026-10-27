@@ -1,0 +1,5 @@
+# Install inside work/pseudo_env using setup_pseudo_depth.py.
+# Existing CPU torch/torchvision/numpy/OpenCV/SciPy/Pillow/PyQt are shared.
+timm==0.9.16
+huggingface-hub==0.26.2
+safetensors==0.5.3

@@ -1,0 +1,9 @@
+# Dataset root is derived from this YAML file location.
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: ice
+kpt_shape: [3, 3]
+kpt_names:
+  0: [tip, base_left, base_right]
