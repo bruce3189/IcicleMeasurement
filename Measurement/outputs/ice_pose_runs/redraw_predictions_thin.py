@@ -1,12 +1,15 @@
 import csv
+from datetime import datetime
 from pathlib import Path
 import cv2
 
-source = Path(r'C:\Users\Administrator\Desktop\images')
-root = Path(r'C:\Users\Administrator\Documents\Codex\2026-10-24\continuing-from-research-the-user-s\outputs\ice_pose_runs\predict_images_400_202610242')
+project_root = Path(__file__).resolve().parents[2]
+source = project_root / 'assets' / 'rgb'
+root = project_root.parent / 'final_results' / 'predictions'
 labels = root / 'labels'
-out_dir = root / 'thin_overlay'
-out_dir.mkdir(parents=True, exist_ok=True)
+output = project_root / 'outputs' / 'ice_pose_runs' / ('redraw_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+out_dir = output / 'thin_overlay'
+out_dir.mkdir(parents=True, exist_ok=False)
 summary = []
 
 for image_path in sorted(source.glob('*.jpg')):
@@ -44,7 +47,7 @@ for image_path in sorted(source.glob('*.jpg')):
     cv2.imwrite(str(out_dir / image_path.name), image, [cv2.IMWRITE_JPEG_QUALITY, 94])
     summary.append({'image': image_path.name, 'detections': count})
 
-with (root / 'image_summary.csv').open('w', newline='', encoding='utf-8-sig') as f:
+with (output / 'image_summary.csv').open('w', newline='', encoding='utf-8-sig') as f:
     writer = csv.DictWriter(f, fieldnames=['image', 'detections'])
     writer.writeheader(); writer.writerows(summary)
 print(f'REDRAWN={len(summary)} OUTPUT={out_dir}')

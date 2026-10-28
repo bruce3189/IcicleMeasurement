@@ -1,5 +1,7 @@
 # 本地 Git 存档范围
 
+> 2026-10-28 最新目录：当前模型、400张预测及训练资料已集中到 `final_results/`，旧实验集中到 `history_archive/`。当前入口见 [最终成果](final_results/README.md) 和 [历史归档](history_archive/README.md)；以下早期存档记录中的路径是当时位置。权重、图片、标签和运行结果仍不进入 Git。
+
 这是 D:\IcicleMeasurement 的代码版本存档，不是完整运行环境备份。
 本次只新增 .gitignore、本说明和隐藏的 .git 历史目录，没有改写、移动或删除原项目文件。
 

@@ -21,7 +21,7 @@ MODEL_DIR = ROOT / 'work' / 'pseudo_models'
 MODEL_PYTHON = ROOT / 'work' / 'pseudo_env' / 'Scripts' / 'python.exe'
 SAMPLE_STEMS = ('001_00045', '002_00002', '002_00058', '002_00041', '004_00064', '005_00036')
 DEFAULT_RGB_DIR = ROOT / 'assets' / 'rgb'
-DEFAULT_LABEL_DIR = ROOT / 'outputs' / 'ice_pose_runs' / 'predict_images_400_202610242' / 'labels'
+DEFAULT_LABEL_DIR = ROOT.parent / 'final_results' / 'predictions' / 'labels'
 
 
 @dataclass

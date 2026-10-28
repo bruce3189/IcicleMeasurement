@@ -11,24 +11,28 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 BASE = PROJECT_ROOT / 'training' / 'pose_2kpt' / 'runs'  # Local training runs
+FINAL_RUN = PROJECT_ROOT.parent / 'final_results' / 'training' / 'run'
+FINAL_NAME = 'final_yolo11n_pose_78_2kpt'
 HERE = Path(__file__).resolve().parent                 # ...\dashboard
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8890
 
 
 def list_runs():
     out = []
-    for d in sorted(BASE.iterdir()):
+    for d in sorted(BASE.glob('*')):
         if d.is_dir() and (d / "results.csv").exists():
             mtime = (d / "results.csv").stat().st_mtime
             out.append({"name": d.name, "mtime": mtime})
+    if (FINAL_RUN / 'results.csv').is_file():
+        out.append({'name': FINAL_NAME, 'mtime': (FINAL_RUN / 'results.csv').stat().st_mtime})
     out.sort(key=lambda x: -x["mtime"])
     return [o["name"] for o in out]
 
 
 def read_run(name):
-    run = BASE / name
+    run = FINAL_RUN if name == FINAL_NAME else BASE / name
     csv_path = run / "results.csv"
     if not csv_path.exists():
         return {"error": "没有 results.csv"}

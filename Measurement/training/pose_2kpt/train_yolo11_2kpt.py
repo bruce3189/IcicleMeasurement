@@ -18,9 +18,9 @@ class SequentialPool:
 dataset_module.ThreadPool = SequentialPool
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-model = YOLO(str(PROJECT_ROOT.parent / 'Yolov11' / 'weights' / 'yolo11n-pose.pt'))
+model = YOLO(str(PROJECT_ROOT.parent / 'history_archive' / 'yolov11_legacy' / 'weights' / 'yolo11n-pose.pt'))
 model.train(
-    data=str(PROJECT_ROOT / 'outputs' / 'ice_pose_runs' / 'dataset_冰凌_两点_78_20261023' / 'dataset.yaml'),
+    data=str(PROJECT_ROOT.parent / 'final_results' / 'training' / 'dataset' / 'dataset.yaml'),
     imgsz=1280,
     rect=True,
     epochs=100,

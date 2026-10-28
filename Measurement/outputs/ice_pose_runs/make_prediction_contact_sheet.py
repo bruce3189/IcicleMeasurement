@@ -1,8 +1,10 @@
 from pathlib import Path
+from datetime import datetime
 from PIL import Image, ImageDraw
 
-folder = Path(r'C:\Users\Administrator\Documents\Codex\2026-10-24\continuing-from-research-the-user-s\outputs\ice_pose_runs\predict_images_400_202610242')
-files = sorted(folder.glob('*.jpg'))
+project_root = Path(__file__).resolve().parents[2]
+folder = project_root.parent / 'final_results' / 'predictions'
+files = sorted(p for p in folder.glob('*.jpg') if not p.name.startswith('preview_'))
 indices = [round(i * (len(files) - 1) / 7) for i in range(8)]
 selected = [files[i] for i in indices]
 cell_w, image_h, title_h = 400, 840, 28
@@ -16,7 +18,9 @@ for n, path in enumerate(selected):
     y0 = (n // cols) * (image_h + title_h)
     draw.text(((n % cols) * cell_w + 8, y0 + 5), path.name, fill='black')
     sheet.paste(im, (x, y0 + title_h))
-out = folder / 'preview_contact_sheet.jpg'
+output = project_root / 'outputs' / 'ice_pose_runs' / ('preview_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+output.mkdir(parents=True, exist_ok=False)
+out = output / 'preview_contact_sheet.jpg'
 sheet.save(out, quality=92)
 print(out)
 print('samples:', ', '.join(p.name for p in selected))

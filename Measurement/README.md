@@ -4,6 +4,8 @@
 
 独立深度估计模块、PyQt5 桌面界面和可复现模拟器。分别估计两个端点的 Z，再沿原像素射线反投影得到 XYZ，计算欧氏距离。现已支持离线原始深度比例、可选 D435i 采集和两点 YOLO11 检测。新增功能与真实输入要求见 [升级说明](docs/rgbd-upgrade.md)。
 
+当前采用的模型为 `../final_results/model/best.pt`，默认预测标签为 `../final_results/predictions/labels/`。完整结果、训练记录和78张数据集见 [最终成果](../final_results/README.md)；旧检测、三点 Pose 及早期测试见 [历史归档](../history_archive/README.md)。新运行仍输出到本目录的 `training/pose_2kpt/runs/` 或 `outputs/ice_pose_runs/`，不覆盖已选最终成果。
+
 代码职责、界面组件位置、兼容入口及模块化前后验证见 [模块维护地图](docs/module-map.md)。
 
 ## 启动

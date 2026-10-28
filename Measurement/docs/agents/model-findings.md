@@ -1,5 +1,7 @@
 # 附录 B · 模型实验与结论
 
+> 历史三点 Pose 实验资料，未用于评价当前选定的两点模型。当前版本见 [最终成果](../../../final_results/README.md)；这些旧实验的本项目副本现位于 `history_archive/yolov11_legacy/runs_pose/`。下文原始路径与统计保留作历史证据。
+
 > 本文件的目的不是记录"我们训过什么"，而是**列出哪些路已经走死了，避免重复劳动**。
 > 所有指标来自 `D:\yolov11\runs_pose\` 下各实验的 `results.csv` 与像素级评估 `summary.json`；诊断结论来自 `codex_review_20261022\诊断报告.md` 与 `tip_refine_232\可疑框复检\复检说明.txt`。
 

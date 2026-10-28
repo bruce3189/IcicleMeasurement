@@ -1,16 +1,17 @@
 import csv
+from datetime import datetime
 from pathlib import Path
 from ultralytics import YOLO
 
 project_root = Path(__file__).resolve().parents[2]
 source = project_root / 'assets' / 'rgb'
-weight = project_root / 'training' / 'pose_2kpt' / 'runs' / 'yolo11n_pose_78_2kpt' / 'weights' / 'best.pt'
+weight = project_root.parent / 'final_results' / 'model' / 'best.pt'
 project = project_root / 'outputs' / 'ice_pose_runs'
-name = 'predict_images_400_20261024'
+name = 'predict_2kpt_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f')
 model = YOLO(str(weight))
 summary_path = project / name / 'image_summary.csv'
 points_path = project / name / 'keypoints.csv'
-summary_path.parent.mkdir(parents=True, exist_ok=True)
+summary_path.parent.mkdir(parents=True, exist_ok=False)
 summary_fields = ['image', 'detections', 'prediction_image']
 point_fields = ['image', 'detection_index', 'box_confidence', 'apex_x_px', 'apex_y_px', 'apex_confidence', 'base_x_px', 'base_y_px', 'base_confidence']
 
@@ -21,7 +22,8 @@ with summary_path.open('w', newline='', encoding='utf-8-sig') as sf, points_path
     pw.writeheader()
     count = 0
     total_detections = 0
-    for result in model.predict(source=str(source), imgsz=1280, rect=True, batch=1, device='cpu', conf=0.25, save=True, save_txt=True, save_conf=True, project=str(project), name=name, exist_ok=False, stream=True, verbose=False):
+    # This directory was exclusively created above; reuse it for images and CSVs.
+    for result in model.predict(source=str(source), imgsz=1280, rect=True, batch=1, device='cpu', conf=0.25, save=True, save_txt=True, save_conf=True, project=str(project), name=name, exist_ok=True, stream=True, verbose=False):
         count += 1
         n = len(result.boxes) if result.boxes is not None else 0
         total_detections += n

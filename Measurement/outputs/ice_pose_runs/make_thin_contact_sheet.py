@@ -1,6 +1,8 @@
 from pathlib import Path
+from datetime import datetime
 from PIL import Image, ImageDraw
-root = Path(r'C:\Users\Administrator\Documents\Codex\2026-10-24\continuing-from-research-the-user-s\outputs\ice_pose_runs\predict_images_400_202610242')
+project_root = Path(__file__).resolve().parents[2]
+root = project_root.parent / 'final_results' / 'predictions'
 folder = root / 'thin_overlay'
 files = sorted(folder.glob('*.jpg'))
 indices = [round(i * (len(files) - 1) / 7) for i in range(8)]
@@ -15,6 +17,8 @@ for n, path in enumerate(selected):
     y0 = (n // 4) * (image_h + title_h)
     draw.text(((n % 4) * cell_w + 8, y0 + 5), path.name, fill='black')
     sheet.paste(im, (x, y0 + title_h))
-out = root / 'preview_contact_sheet_thin.jpg'
+output = project_root / 'outputs' / 'ice_pose_runs' / ('preview_thin_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+output.mkdir(parents=True, exist_ok=False)
+out = output / 'preview_contact_sheet_thin.jpg'
 sheet.save(out, quality=92)
 print(out)

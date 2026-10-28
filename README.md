@@ -2,15 +2,16 @@
 
 双击 **启动冰凌测距.cmd** 打开双工作页工作台；**启动测距分析.cmd** 打开原离线/模拟入口。
 
-- `Yolov11/`：原D盘检测/训练工程的完整副本，保留本地Ultralytics源码及历史实验。
-- [YOLO 历史训练与结果索引](Yolov11/历史训练与结果/README.md)：训练参数与指标、权重、预测输出和复核材料的统一入口。
+- [最终成果](final_results/README.md)：当前采用的两点 Pose 模型、400 张预测结果、训练记录与78张数据集。
+- [历史归档](history_archive/README.md)：旧检测、三点 Pose、微调实验和早期测试，集中保留。
+- `Yolov11/`：保留本地 Ultralytics 源码、原有数据与参考资料；旧实验已迁入历史归档。
 - `Measurement/`：模块化RGB-D测距工作台的完整副本。模块说明在 `Measurement/docs/module-map.md`。
 - `Measurement/assets/rgb/`：400张原图的独立副本，已逐文件校验。
 
-本机基础解释器仍为 `D:\318`。测距工作台沿用基础环境里的Ultralytics；从Yolov11目录运行则沿用该目录的本地Ultralytics，二者不混用。当前两点Pose权重仍在 `Measurement/training/pose_2kpt/runs/yolo11n_pose_78_2kpt/weights/best.pt`；历史检测权重没有替换。
+本机基础解释器仍为 `D:\318`。测距工作台沿用基础环境里的 Ultralytics；`Yolov11/` 中保留的是另一份本地源码。当前两点 Pose 权重为 `final_results/model/best.pt`，伪深度工作页默认读取 `final_results/predictions/labels/`。桌面400张预测结果快捷方式也指向 `final_results/predictions/`。
 
-迁移清单、外部依赖、已有缺失项与验收结果在 `Measurement/docs/migration/`。2026-10-28 核查确认：`iceice.yaml` 位于 `Yolov11/ultralytics/cfg/datasets/`，`mytrain.py` 使用相对名；根目录没有同名文件。本次没有替换数据集或启动训练。
+本次归档清单与验收记录在 `history_archive/migration/`，原迁移资料仍在 `Measurement/docs/migration/`。新运行沿用 `Measurement/training/pose_2kpt/runs/` 和 `Measurement/outputs/ice_pose_runs/`，训练、预测、重绘及预览各自生成时间戳目录，不自动覆盖最终成果。
 
-旧目录和桌面原图全部保留。2026-10-28 已整理 YOLO 历史记录：训练和预测目录保留原路径，根目录散落的复核图、截图、日志与旧图表复核目录中的文件归入 `Yolov11/历史训练与结果/结果附件/`，原路径与哈希见该目录的 `整理清单.json`。旧日志、备份和权重内记录的训练路径属于历史来源；部分旧训练脚本仍含旧目录绝对路径，不能直接作为已适配的重训入口。
+原始 `D:\yolov11`、桌面原图、Depth Anything、MobileSAM、伪深度缓存及自动关机脚本均保留原位。本次移动的是本项目中的副本。历史参数、日志及归档脚本中的旧绝对路径保留作来源证据，不能直接作为当前重训入口。
 
 可选模型依赖仍共享本机Python，不是无需外部环境的便携包。
