@@ -169,3 +169,9 @@ id_ed25519*
 !/history_archive/yolov11_legacy/runs_pose/train_pose26_tipw.py
 !/history_archive/yolov11_legacy/runs_pose/usage.txt
 !/history_archive/yolov11_legacy/train_coco_example.py
+!/history_archive/launchers/README.md
+!/history_archive/launchers/root_scene.cmd
+!/history_archive/launchers/root_analysis.cmd
+!/history_archive/launchers/measurement_scene.cmd
+!/history_archive/launchers/measurement_analysis.cmd
+!/final_results/examples/005_00036/README.md

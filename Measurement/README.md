@@ -6,13 +6,15 @@
 
 当前采用的模型为 `../final_results/model/best.pt`，默认预测标签为 `../final_results/predictions/labels/`。完整结果、训练记录和78张数据集见 [最终成果](../final_results/README.md)；旧检测、三点 Pose 及早期测试见 [历史归档](../history_archive/README.md)。新运行仍输出到本目录的 `training/pose_2kpt/runs/` 或 `outputs/ice_pose_runs/`，不覆盖已选最终成果。
 
+用户指定的重点范例为 [005_00036](../final_results/examples/005_00036/README.md)：演示与图文说明优先采用其两点预测和模拟深度，包内保留可导入的数值深度、可编辑项目与测距记录。
+
 代码职责、界面组件位置、兼容入口及模块化前后验证见 [模块维护地图](docs/module-map.md)。
 
 ## 启动
 
 新增 **RGB 生成伪深度** 入口：单目模型背景、逐实例掩膜、可编辑假想冰凌表面以及 D435i Z16 格式的完整/带误差两份数据。使用方法和数据边界见 [伪深度说明](docs/pseudo-depth.md)，六张真实 RGB 样例总览位于 `outputs/pseudo_depth_samples/review.html`。
 
-在本目录双击 `launch_measurement.cmd`。该启动器优先使用本机已经安装 PyQt5、NumPy、OpenCV 的 `D:\318\pythonw.exe`，其他机器回退到 `python`。
+双击项目根目录的 [launch_workbench.cmd](../launch_workbench.cmd)。统一入口默认打开“场景生成”，测距分析在同一窗口的标签页内使用。启动器优先使用本机已经安装 PyQt5、NumPy、OpenCV 的 `D:\318\pythonw.exe`，其他机器回退到 `python`；本目录原有两个启动脚本保留为该统一入口的兼容转发。
 
 也可以在本目录终端运行：
 

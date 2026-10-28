@@ -2,6 +2,8 @@
 
 用户确认采用：YOLO11n 两点 Pose（tip 尖端、base 根部中点），78张数据训练的 best.pt。目录集中日期：2026-10-28T18:52:29+08:00。
 
+**重点范例：[005_00036 的两点预测与模拟深度](examples/005_00036/README.md)**。后续演示和图文说明优先使用这一组，已保存对应预测图、完整/带误差深度、项目参数和测距记录。
+
 - [最终模型](model/best.pt)：唯一选定的检测权重，SHA-256 `ccd5cb349e5ae6f7986d304a1f153982500e9bd4e9d4613c4deb3cc418319bad`。
 - [400张预测结果](predictions/)：400张带框和两点的预测图、400份 labels、400张 thin_overlay、两张预览总图以及两份 CSV，共1204个文件。
 - [细线版预览总图](predictions/preview_contact_sheet_thin.jpg)；[普通预览总图](predictions/preview_contact_sheet.jpg)。

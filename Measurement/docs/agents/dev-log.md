@@ -213,7 +213,7 @@ python -m icicle_measure.benchmark --output outputs/rgbd_validation
    - `requirements-pseudo-depth.txt` —— timm / huggingface-hub / safetensors，要装在 `work/pseudo_env`
 2. **伪深度必须用独立 venv**（`work/pseudo_env`），用 `setup_pseudo_depth.py` 安装。主进程不导入 torch/timm 是刻意设计，别为了省事把依赖并进主环境。
 3. **RealSense 只能在 py3.9 下用**，主环境若是 3.10+ 就用 `requirements-camera-py39.txt` 那一套。
-4. **两个 launch 脚本是两条不同入口**：`launch_measurement.cmd`（主链路）与 `launch_pseudo_depth.cmd`（伪深度）。不是同一程序的开关。
+4. **统一启动入口**：项目根目录的 `launch_workbench.cmd` 启动同一个 `icicle_measure` 程序，默认进入场景生成，在窗口内切换测距分析。`Measurement/launch_measurement.cmd` 与 `Measurement/launch_pseudo_depth.cmd` 均兼容转发到统一入口；原先两种启动仅默认参数不同，原脚本已归档。
 
 ## 8. 改码约定
 

@@ -1,8 +1,9 @@
 # 冰凌自动化尺寸测量项目
 
-双击 **启动冰凌测距.cmd** 打开双工作页工作台；**启动测距分析.cmd** 打开原离线/模拟入口。
+双击 [launch_workbench.cmd](launch_workbench.cmd) 打开统一工作台，默认进入“场景生成”；在程序内切换“测距分析”标签页进行分析。原来两个根目录启动文件已移入历史归档。
 
 - [最终成果](final_results/README.md)：当前采用的两点 Pose 模型、400 张预测结果、训练记录与78张数据集。
+- [重点范例：005_00036](final_results/examples/005_00036/README.md)：后续演示与图文说明优先使用的两点预测、模拟深度及对应测距记录。
 - [历史归档](history_archive/README.md)：旧检测、三点 Pose、微调实验和早期测试，集中保留。
 - `Yolov11/`：保留本地 Ultralytics 源码、原有数据与参考资料；旧实验已迁入历史归档。
 - `Measurement/`：模块化RGB-D测距工作台的完整副本。模块说明在 `Measurement/docs/module-map.md`。
