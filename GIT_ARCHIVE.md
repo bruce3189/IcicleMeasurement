@@ -27,8 +27,9 @@ runs_pose 中的源脚本和数据集配置保留；历史实验输出、数据�
 ## 运行资源与外部依赖
 
 - 本机基础 Python/依赖仍位于 D:\318；Git 位于 D:\Git，未复制进仓库。
-- Measurement/assets/rgb 的400张原图、outputs 下的预测标签和两点 Pose 权重仅在本机保留。
+- Measurement/assets/rgb 的400张原图、outputs 下的预测标签，以及 training/pose_2kpt/runs 下的两点 Pose 权重和运行记录仅在本机保留。
 - work/pseudo_env、模型权重需另行准备；setup_pseudo_depth.py 保留原有固定版本设置，本次没有运行安装。
+- 两点 Pose 的训练运行归档在 Measurement/training/pose_2kpt/runs/yolo11n_pose_78_2kpt；训练数据集仍位于 outputs/ice_pose_runs/dataset_冰凌_两点_78_20261023。训练脚本使用项目相对路径，新运行使用时间戳目录以避免覆盖归档。
 - 部分历史脚本仍有外部数据路径；mytrain.py 所需 iceice.yaml 原本缺失，没有替换数据集或启动训练。
 - 第三方许可证按现有文件保留，没有给第三方代码重新授权；将来公开发布前仍需核对分发要求。
 - 当前代码、注释及文档可能包含本地路径；规则凭据扫描没有发现待处理的凭据，但不代替公开发布审查。

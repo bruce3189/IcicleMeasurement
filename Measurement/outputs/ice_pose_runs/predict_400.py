@@ -2,9 +2,10 @@ import csv
 from pathlib import Path
 from ultralytics import YOLO
 
-source = Path(r'C:\Users\Administrator\Desktop\images')
-weight = Path(r'C:\Users\Administrator\Documents\Codex\2026-10-24\continuing-from-research-the-user-s\outputs\ice_pose_runs\yolo11n_pose_78_2kpt\weights\best.pt')
-project = Path(r'C:\Users\Administrator\Documents\Codex\2026-10-24\continuing-from-research-the-user-s\outputs\ice_pose_runs')
+project_root = Path(__file__).resolve().parents[2]
+source = project_root / 'assets' / 'rgb'
+weight = project_root / 'training' / 'pose_2kpt' / 'runs' / 'yolo11n_pose_78_2kpt' / 'weights' / 'best.pt'
+project = project_root / 'outputs' / 'ice_pose_runs'
 name = 'predict_images_400_20261024'
 model = YOLO(str(weight))
 summary_path = project / name / 'image_summary.csv'

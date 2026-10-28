@@ -1,6 +1,6 @@
 """训练进度看板服务（标准库实现，无第三方依赖）
 
-启动：D:\\318\\envs\\yolo26\\python.exe D:\\yolov11\\runs_pose\\dashboard\\server.py 8890
+启动：D:\\318\\python.exe D:\\IcicleMeasurement\\Measurement\\outputs\\ice_pose_runs\\dashboard\\server.py 8890
 浏览器打开 http://localhost:8890
 """
 import csv
@@ -11,7 +11,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-BASE = Path(r'C:\Users\Administrator\Documents\Codex\2026-10-24\continuing-from-research-the-user-s\outputs\ice_pose_runs')  # Current training output root
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+BASE = PROJECT_ROOT / 'training' / 'pose_2kpt' / 'runs'  # Local training runs
 HERE = Path(__file__).resolve().parent                 # ...\dashboard
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8890
 

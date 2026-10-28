@@ -6,7 +6,7 @@
 - `Measurement/`：模块化RGB-D测距工作台的完整副本。模块说明在 `Measurement/docs/module-map.md`。
 - `Measurement/assets/rgb/`：400张原图的独立副本，已逐文件校验。
 
-本机基础解释器仍为 `D:\318`。测距工作台沿用基础环境里的Ultralytics；从Yolov11目录运行则沿用该目录的本地Ultralytics，二者不混用。当前两点Pose权重仍在 `Measurement/outputs/ice_pose_runs/yolo11n_pose_78_2kpt/weights/best.pt`；历史检测权重没有替换。
+本机基础解释器仍为 `D:\318`。测距工作台沿用基础环境里的Ultralytics；从Yolov11目录运行则沿用该目录的本地Ultralytics，二者不混用。当前两点Pose权重仍在 `Measurement/training/pose_2kpt/runs/yolo11n_pose_78_2kpt/weights/best.pt`；历史检测权重没有替换。
 
 迁移清单、外部依赖、已有缺失项与验收结果在 `Measurement/docs/migration/`。`Yolov11/mytrain.py` 引用的 `iceice.yaml` 原先已缺失，本轮未替换数据集，也未启动训练。
 

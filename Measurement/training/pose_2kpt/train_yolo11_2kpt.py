@@ -1,3 +1,5 @@
+from pathlib import Path
+from datetime import datetime
 from ultralytics import YOLO
 import ultralytics.data.dataset as dataset_module
 
@@ -15,9 +17,10 @@ class SequentialPool:
 
 dataset_module.ThreadPool = SequentialPool
 
-model = YOLO(r'D:\yolov11\weights\yolo11n-pose.pt')
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+model = YOLO(str(PROJECT_ROOT.parent / 'Yolov11' / 'weights' / 'yolo11n-pose.pt'))
 model.train(
-    data=r'C:\Users\Administrator\Documents\Codex\2026-10-24\continuing-from-research-the-user-s\outputs\ice_pose_runs\dataset_冰凌_两点_78_20261023\dataset.yaml',
+    data=str(PROJECT_ROOT / 'outputs' / 'ice_pose_runs' / 'dataset_冰凌_两点_78_20261023' / 'dataset.yaml'),
     imgsz=1280,
     rect=True,
     epochs=100,
@@ -26,9 +29,9 @@ model.train(
     device='cpu',
     workers=0,
     cache=False,
-    project=r'C:\Users\Administrator\Documents\Codex\2026-10-24\continuing-from-research-the-user-s\outputs\ice_pose_runs',
-    name='yolo11n_pose_78_2kpt',
-    exist_ok=True,
+    project=str(PROJECT_ROOT / 'training' / 'pose_2kpt' / 'runs'),
+    name='yolo11n_pose_78_2kpt_' + datetime.now().strftime('%Y%m%d_%H%M%S'),
+    exist_ok=False,
     seed=42,
     deterministic=True,
     plots=True,

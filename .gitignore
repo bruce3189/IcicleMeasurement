@@ -64,6 +64,7 @@
 /Measurement/docs/migration/**
 /Measurement/work/yolo_config/**
 /Measurement/work/camera_wheels/**
+/Measurement/training/pose_2kpt/runs/**
 /Yolov11/runs/**
 /Yolov11/runs_pose/**
 !/Yolov11/runs_pose/**/

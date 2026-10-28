@@ -64,5 +64,5 @@ class PoseDetector:
 
 
 def default_weights():
-    path = Path(__file__).resolve().parents[1] / 'outputs/ice_pose_runs/yolo11n_pose_78_2kpt/weights/best.pt'
+    path = Path(__file__).resolve().parents[1] / 'training/pose_2kpt/runs/yolo11n_pose_78_2kpt/weights/best.pt'
     return str(path) if path.is_file() else ''
