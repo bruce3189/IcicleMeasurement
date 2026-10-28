@@ -1,0 +1,4 @@
+# Root repository uses a source allowlist. Keep the linker script as source.
+!*.ld
+/build/
+/tests/build/
