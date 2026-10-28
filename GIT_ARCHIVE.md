@@ -56,3 +56,10 @@ git log --oneline -5
 
 先核对暂存清单，再提交。以上命令不会自动上传，也不会保存被忽略的权重、图片和环境。
 恢复历史版本前先检查未提交修改，避免覆盖正在进行的工作。
+
+## 2026-10-28 本机训练记录整理
+
+两点 Pose 训练运行（30个文件，30,969,017字节）已从 `Measurement/outputs/ice_pose_runs/yolo11n_pose_78_2kpt` 移到 `Measurement/training/pose_2kpt/runs/yolo11n_pose_78_2kpt`；训练脚本移到同目录的上层。训练权重和运行结果仍由 `.gitignore` 排除，训练脚本作为源码保留在 Git 工作区。
+默认 Pose 权重、预测入口、看板、训练脚本和使用说明已经改用新路径。训练数据集仍在 `Measurement/outputs/ice_pose_runs/dataset_冰凌_两点_78_20261023`。历史 `args.yaml` 内绝对路径保留作训练来源记录。
+路径与训练脚本的代码变更现已包含在提交 `1b23813`，本地分支与 `origin/main` 一致；运行记录和权重仍未纳入 Git。该提交由本机 Git 记录的署名邮箱为 `sabanarupeali@gmail.com`。
+`Measurement/outputs/ice_pose_runs/shutdown_after_training.ps1` 按要求原样留在原位置且未运行；脚本包含 Windows 自动关机命令，请勿启动。
