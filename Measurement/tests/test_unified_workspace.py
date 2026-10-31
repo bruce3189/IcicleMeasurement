@@ -86,9 +86,9 @@ class WorkspaceTests(unittest.TestCase):
         self.assertIsNotNone(w.result)
         self.assertEqual(w.frame.metadata['depth_variant'],'complete')
         before=w.result
-        w.set_config(replace(w.config,confidence_min=.82)); self.wait(w)
+        w.set_config(replace(w.config,separation_min_exclusive=3.2)); self.wait(w)
         self.assertIsNot(before,w.result)
-        self.assertEqual(w.result.config['confidence_min'],.82)
+        self.assertEqual(w.result.config['separation_min_exclusive'],3.2)
 
     def test_only_latest_pending_input_is_measured_and_old_completion_is_ignored(self):
         w,p=self.window()

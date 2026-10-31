@@ -132,6 +132,9 @@ def shared_membership(previous, current):
 
 
 def endpoint_estimate(frame, detection, index, intrinsics, config, strategies, cancelled):
+    if config.endpoint_depth_mode == 'near_cluster_simple':
+        from .near_cluster import endpoint_estimate as near_estimate
+        return near_estimate(frame, detection, index, intrinsics, config, strategies, cancelled)
     point = detection.keypoints[index]
     result = EndpointResult(('tip', 'base')[index], tuple(point))
     h, w = frame.depth_m.shape
@@ -250,14 +253,14 @@ def endpoint_estimate(frame, detection, index, intrinsics, config, strategies, c
         record.consecutive_passes = streak
         if streak >= config.consecutive:
             result.status = 'accepted'
-            result.reason = ('通过连续扩窗判定（近簇均值近似）' if config.endpoint_depth_mode == 'near_cluster_mean'
-                             else '通过连续扩窗判定（严格局部一致）')
+            result.reason = ('通过扩窗证据判定（近簇均值近似）' if config.endpoint_depth_mode == 'near_cluster_mean'
+                             else '通过扩窗证据判定（严格局部一致）')
             result.depth_m = record.center_m
             result.xyz_m = deproject(point, result.depth_m, intrinsics)
             result.confidence = record.score
             return result
         if all(record.checks.values()):
-            record.reasons.append('等待更多连续扩窗比较')
+            record.reasons.append('本窗未通过，等待下一窗口比较')
         if radius >= max_radius:
             reached_box_limit = True
             record.reasons.append('已达到检测框短边搜索上限')
@@ -303,11 +306,11 @@ def measure_frame(frame: Frame, detections, intrinsics: Intrinsics, config: Opti
     detections = list(detections)
     if len({d.id for d in detections}) != len(detections):
         raise ValueError('目标 ID 必须唯一')
-    result = MeasurementResult([], asdict(config), asdict(intrinsics), frame.rgb.shape[1::-1],
+    result = MeasurementResult([], config.active_dict(), asdict(intrinsics), frame.rgb.shape[1::-1],
                                source=dict(frame.metadata))
     if frame.metadata.get('is_synthetic') is True:
         result.assumptions = ('模型伪深度 / 人工合成，光轴 Z；尺度为人工设定，针孔几何是假设，原照片畸变未经验证。'
-                              '距离为基于伪深度的估计；邻域目标均值赋给原关键点射线，评分不是概率，结果不验证真实精度。')
+                              '距离为基于伪深度的估计；邻域目标均值赋给原关键点射线，结果不验证真实精度。')
     for i, detection in enumerate(detections):
         if cancelled():
             result.cancelled = True

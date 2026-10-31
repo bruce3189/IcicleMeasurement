@@ -2,4 +2,6 @@
 from .models import Frame, Detection, Intrinsics, Config
 from .core import measure_frame, Strategies
 
-__all__ = ['Frame', 'Detection', 'Intrinsics', 'Config', 'Strategies', 'measure_frame']
+__all__ = ['Frame', 'Detection', 'Intrinsics', 'Config', 'Strategies', 'measure_frame', 'WindowAnalysisConfig', 'analyze_frame_windows']
+
+from .window_analysis import WindowAnalysisConfig, analyze_frame_windows

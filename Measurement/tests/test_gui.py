@@ -56,7 +56,7 @@ class GuiTests(unittest.TestCase):
             final_record = self.window.plot.endpoint.history[-1]
             self.assertEqual(self.window.plot.scatter.sample_count, len(final_record.valid_ids))
             self.assertEqual(self.window.plot.scatter.cluster_counts['target'], final_record.target_count)
-            self.assertGreaterEqual(final_record.target_count, 80)
+            self.assertGreater(final_record.target_count, self.window.config.near_min_exclusive)
             titles = [self.window.plot.tabs.tabText(index)
                       for index in range(self.window.plot.tabs.count())]
             self.assertEqual(titles[:4], ['3D 深度点云', '深度簇分布', '深度与均值变化', '扩窗样本量'])
@@ -75,15 +75,15 @@ class GuiTests(unittest.TestCase):
                     self.assertTrue(self.window.grab().save(str(screenshot_dir / 'gui_preview.png')))
             self.window.plot.tabs.setCurrentIndex(0)
             dialog = ConfigDialog(self.window.config, self.window)
-            dialog.editor.setPlainText(json.dumps({'confidence_min': .9}))
+            dialog.editor.setPlainText(json.dumps({'separation_min_exclusive': 3.5}))
             dialog.accept()
-            self.assertEqual(dialog.value.confidence_min, .9)
+            self.assertEqual(dialog.value.separation_min_exclusive, 3.5)
             self.window.set_config(dialog.value)
             self.assertIsNone(self.window.result)
             self.assertFalse(self.window.export_button.isEnabled())
             QtTest.QTest.mouseClick(self.window.run_button, QtCore.Qt.LeftButton)
             self.wait_worker()
-            self.assertEqual(self.window.result.config['confidence_min'], .9)
+            self.assertEqual(self.window.result.config['separation_min_exclusive'], 3.5)
 
     def test_real_thread_cancel_and_rerun(self):
         from icicle_measure.models import Detection
@@ -121,13 +121,13 @@ class GuiTests(unittest.TestCase):
             with patch.object(QtWidgets.QFileDialog, 'getOpenFileName', side_effect=[(str(p), '') for p in paths]):
                 QtTest.QTest.mouseClick(self.window.files_button, QtCore.Qt.LeftButton)
             self.assertEqual(len(self.window.detections), 1)
-            self.window.set_config(Config(confidence_min=.9))
+            self.window.set_config(Config(separation_min_exclusive=3.5))
             with patch.object(QtWidgets.QFileDialog, 'getSaveFileName', return_value=(str(root / 'config.json'), '')):
                 QtTest.QTest.mouseClick(self.window.config_save_button, QtCore.Qt.LeftButton)
             self.window.set_config(Config())
             with patch.object(QtWidgets.QFileDialog, 'getOpenFileName', return_value=(str(root / 'config.json'), '')):
                 QtTest.QTest.mouseClick(self.window.config_load_button, QtCore.Qt.LeftButton)
-            self.assertEqual(self.window.config.confidence_min, .9)
+            self.assertEqual(self.window.config.separation_min_exclusive, 3.5)
             self.window.generate_simulation()
             with patch.object(QtWidgets.QFileDialog, 'getExistingDirectory', return_value=str(root / 'saved_sim')):
                 QtTest.QTest.mouseClick(self.window.save_sim_button, QtCore.Qt.LeftButton)

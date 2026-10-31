@@ -118,7 +118,7 @@ class MainWindow(QtWidgets.QMainWindow):
         heading.addWidget(title); heading.addStretch()
         self.pseudo_button = self.button(heading, 'RGB 生成伪深度', self.open_pseudo_depth)
         layout.addLayout(heading)
-        self.input_note = QtWidgets.QLabel('场景假设：冰凌在背景前方，邻域目标深度可代表端点。输出为估计值；评分是规则满足度，不是正确概率。')
+        self.input_note = QtWidgets.QLabel('场景假设：冰凌在背景前方，邻域目标深度可代表端点。输出为邻域近簇均值近似；当前方案按样本数和分离度判定。')
         self.input_note.setWordWrap(True)
         self.input_note.setStyleSheet('color:#876315; background:#fff4d8; padding:8px;')
         layout.addWidget(self.input_note)
@@ -141,9 +141,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.run_button.setEnabled(False)
         toolbar.addStretch()
         self.depth_mode = QtWidgets.QComboBox()
-        self.depth_mode.addItem('近簇均值近似（推荐）', 'near_cluster_mean')
-        self.depth_mode.addItem('严格局部一致', 'strict_local')
-        self.depth_mode.setToolTip('保留原关键点像素，用可信近簇算术均值估深。近似模式下，平面偏差和新增区域均值差仅提示。')
+        self.depth_mode.addItem('近簇优先（当前方案）', 'near_cluster_simple')
+        self.depth_mode.addItem('严格局部一致（历史）', 'strict_local')
+        self.depth_mode.addItem('历史规则基线', 'near_cluster_mean')
+        self.depth_mode.setToolTip('当前方案保留原像素，用去噪后近簇均值估深；数量和分离度达标立即输出。历史模式用于对照。')
         self.depth_mode.currentIndexChanged.connect(self.change_depth_mode)
         toolbar.addWidget(self.depth_mode)
         options = QtWidgets.QHBoxLayout()
@@ -315,7 +316,7 @@ class MainWindow(QtWidgets.QMainWindow):
         geometry = ('模型伪深度 / 人工合成；假设针孔几何，原照片畸变未经标定，非实测深度。' if pseudo
                     else '输入已声明对齐、去畸变，深度为光轴 Z。')
         self.input_note.setText(('模型伪深度 / 人工合成 · 基于伪深度的估计距离；人工设定尺度、假设或用户提供内参。长度先验不构成测量真值。' if pseudo
-            else '场景假设：冰凌在背景前方，邻域目标深度可代表端点。输出为估计值；评分是规则满足度，不是正确概率。'))
+            else '场景假设：冰凌在背景前方，邻域目标深度可代表端点。输出为邻域近簇均值近似；当前方案按样本数和分离度判定。'))
         self.table.setHorizontalHeaderItem(6, QtWidgets.QTableWidgetItem('伪深度端点欧氏距离 (mm)' if pseudo else '端点欧氏距离 (mm)'))
         self.update_distance_summary()
         self.details.setPlainText('输入：%s\n图像：%d × %d\n目标数：%d\n相机内参：%s\n%s' % (
@@ -557,7 +558,7 @@ class MainWindow(QtWidgets.QMainWindow):
         path, _ = QtWidgets.QFileDialog.getSaveFileName(self, '保存参数', 'config.json', 'JSON (*.json)')
         if path:
             try:
-                write_json(path, asdict(self.config))
+                write_json(path, self.config.active_dict())
             except Exception as exc:
                 self.report_error(str(exc))
 
@@ -661,7 +662,7 @@ class MainWindow(QtWidgets.QMainWindow):
                          STATUS[ep.status if ep else obj.status],
                          '%.2f' % (ep.depth_m * 1000) if ep and ep.depth_m is not None else '—',
                          xyz_text,
-                         '%.3f' % ep.confidence if ep else '—',
+                         '%.3f' % ep.confidence if ep and ep.confidence is not None else '—',
                          '%.2f' % (obj.distance_m * 1000) if verified_distance(obj) else '—',
                          ep.reason if ep else obj.reason]
                 for col, text in enumerate(cells):
@@ -730,7 +731,7 @@ class MainWindow(QtWidgets.QMainWindow):
         ep = obj.endpoints[index]
         lines = ['目标 %s / %s：%s' % (obj.id, '尖端' if index == 0 else '根部', STATUS[ep.status]),
                  ep.reason, '原始像素：%s；估计 XYZ (m)：%s' % (ep.pixel, ep.xyz_m),
-                 '评分 %.4f（不是概率）；目标距离：%s m' % (ep.confidence, obj.distance_m)]
+                 '目标距离：%s m；综合评分：%s' % (obj.distance_m, '未使用' if ep.confidence is None else '%.4f' % ep.confidence)]
         lines.append('来源：' + json.dumps(self.frame.metadata, ensure_ascii=False))
         if self.simulation and obj.id in self.simulation.truth:
             truth = self.simulation.truth[obj.id]
@@ -739,12 +740,17 @@ class MainWindow(QtWidgets.QMainWindow):
                 lines.append('模拟 Z 误差=%.3f mm' % (abs(ep.depth_m - truth['depth_m'][index]) * 1000))
         lines.append('\n扩窗记录：')
         for r in ep.history:
+            if self.config.endpoint_depth_mode == 'near_cluster_simple':
+                lines.append('r=%d | 近簇=%d / 远簇=%d | 估计深度=%s m | S=%s | 均值变化=%s m（仅记录） | %s' % (
+                    r.radius, r.near_count, r.far_count, r.center_m, r.separation,
+                    r.center_change_m, '；'.join(r.reasons) or '当前窗达标'))
+                continue
             fmt = lambda value: '—' if value is None else '%.4f' % value
             lines.append('r=%d | 近/远/目标=%d/%d/%d | 均值=%s m | 分离=%s | 间隔=%s m\n'
                          '  中心变化=%s m | 成员 J=%s | 总分=%.3f | %s' % (
                              r.radius, r.near_count, r.far_count, r.target_count, fmt(r.center_m),
                              fmt(r.separation), fmt(r.gap_m), fmt(r.center_change_m), fmt(r.membership),
-                             r.score, '；'.join(r.reasons) or '全部通过'))
+                             r.score if r.score is not None else float('nan'), '；'.join(r.reasons) or '全部通过'))
             lines.append('  锚区=%s | 内部多群=%s | 梯度偏差=%s mm | 新增目标/远簇=%s/%s | '
                          '覆盖近/远/目标=%s/%s/%s | 连续通过=%d' % (
                              r.anchor.get('count', '—'), r.subgroups.get('ambiguous', '—'),
@@ -754,7 +760,7 @@ class MainWindow(QtWidgets.QMainWindow):
                              r.consecutive_passes))
             if r.warnings:
                 lines.append('  仅提示（不阻断）：' + '；'.join(r.warnings))
-        if ep.history:
+        if ep.history and self.config.endpoint_depth_mode != 'near_cluster_simple':
             lines.append('\n最后窗口分项评分：' + json.dumps(ep.history[-1].scores, ensure_ascii=False))
         self.details.setPlainText('\n'.join(lines))
         detection = next((item for item in self.detections if item.id == obj.id), None)

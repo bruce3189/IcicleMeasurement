@@ -10,6 +10,19 @@ from icicle_measure.core import measure_frame
 from icicle_measure.gui import DepthTerrainCanvas, DiagnosticsPlot, MainWindow, configure_font
 
 
+# Historical evidence contract; new default behavior is covered separately by
+# test_near_cluster_simple.py. Do not silently apply old 80-point/anchor gates
+# to the current near-first algorithm.
+from dataclasses import dataclass
+_CurrentConfig, _measure_current = Config, measure_frame
+@dataclass
+class Config(_CurrentConfig):
+    endpoint_depth_mode: str = 'near_cluster_mean'
+def measure_frame(*args, **kwargs):
+    if len(args) < 4 and kwargs.get('config') is None:
+        kwargs['config'] = Config()
+    return _measure_current(*args, **kwargs)
+
 class NearMeanZoomTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

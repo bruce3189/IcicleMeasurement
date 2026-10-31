@@ -4,6 +4,10 @@ import math
 import numpy as np
 
 
+DEPTH_MIN_M = 0.001
+DEPTH_MAX_M = 5.0
+
+
 @dataclass
 class Intrinsics:
     fx: float
@@ -23,8 +27,8 @@ class Intrinsics:
 class Frame:
     rgb: np.ndarray
     depth_m: np.ndarray
-    min_depth_m: float = 0.1
-    max_depth_m: float = 10.0
+    min_depth_m: float = DEPTH_MIN_M
+    max_depth_m: float = DEPTH_MAX_M
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def validate(self):
@@ -54,7 +58,13 @@ class Detection:
 
 @dataclass
 class Config:
-    radii: Tuple[int, ...] = (3, 5, 8, 12, 18, 25, 35, 45, 60)
+    radii: Tuple[int, ...] = (4, 5, 8, 12, 18, 25, 35, 45, 60)
+    # Active simple mode uses strict lower bounds; legacy fields remain below.
+    near_min_exclusive: int = 26
+    far_min_exclusive: int = 46
+    # Accepted on loading old parameter files only; inactive in the current simple mode.
+    far_to_near_min_exclusive: float = 0.5
+    separation_min_exclusive: float = 3.0
     bbox_padding: int = 10
     mad_multiplier: float = 3.5
     mad_floor_m: float = 0.001
@@ -68,7 +78,10 @@ class Config:
     membership_min: float = 0.85
     membership_full: float = 0.95
     confidence_min: float = 0.8
-    consecutive: int = 2
+    # A single window that satisfies every hard check is enough to accept.
+    # Keeping the field (default 1) preserves the acceptance gate and the
+    # GUI/test hooks; raise it to require several consecutive passes again.
+    consecutive: int = 1
     band_min_px: float = 3.0
     band_width_ratio: float = 0.15
     component_min: int = 6
@@ -90,9 +103,23 @@ class Config:
     growth_mean_max_m: float = 0.005
     coverage_cell_px: int = 2
     coverage_min_cells: int = 12
-    endpoint_depth_mode: str = 'near_cluster_mean'
+    endpoint_depth_mode: str = 'near_cluster_simple'
+
+    def active_dict(self):
+        values = asdict(self)
+        if self.endpoint_depth_mode == 'near_cluster_simple':
+            names = ('radii', 'mad_multiplier', 'mad_floor_m', 'near_min_exclusive',
+                     'far_min_exclusive',
+                     'separation_min_exclusive', 'endpoint_depth_mode')
+            return {k: values[k] for k in names}
+        return values
 
     def validate(self):
+        if self.endpoint_depth_mode == 'near_cluster_simple':
+            from .window_analysis import WindowAnalysisConfig
+            WindowAnalysisConfig(**{k: getattr(self, k) for k in
+                                  WindowAnalysisConfig.__dataclass_fields__}).validate()
+            return
         if self.endpoint_depth_mode not in ('near_cluster_mean', 'strict_local'):
             raise ValueError('endpoint_depth_mode 须为 near_cluster_mean 或 strict_local')
         if not self.radii or any(type(r) is not int or r <= 0 for r in self.radii):
@@ -151,7 +178,7 @@ class WindowRecord:
     gap_m: Optional[float] = None
     center_change_m: Optional[float] = None
     membership: Optional[float] = None
-    score: float = 0.0
+    score: Optional[float] = None
     scores: Dict[str, float] = field(default_factory=dict)
     checks: Dict[str, bool] = field(default_factory=dict)
     reasons: List[str] = field(default_factory=list)
@@ -178,7 +205,7 @@ class EndpointResult:
     reason: str = ''
     depth_m: Optional[float] = None
     xyz_m: Optional[Tuple[float, float, float]] = None
-    confidence: float = 0.0
+    confidence: Optional[float] = None
     history: List[WindowRecord] = field(default_factory=list)
 
 

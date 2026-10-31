@@ -370,9 +370,13 @@ class WindowCountsCanvas(PlotCanvas):
         max_n = max(max_n, self.config.full_samples, 1) * 1.18
         xmax = max(r.radius for r in records)
         self.draw_axes(p, chart, '搜索半径 r (px)', '去噪后像素数', 0, xmax + 1, 0, max_n)
-        for threshold, label, color in (
-                (self.config.min_samples, '硬下限', '#d9534f'),
-                (self.config.full_samples, '样本评分满分', '#68778b')):
+        thresholds = ([(self.config.near_min_exclusive+1, '近簇最少', '#d9534f'),
+                       (self.config.far_min_exclusive+1, '远簇最少', '#68778b')]
+                      if self.config.endpoint_depth_mode == 'near_cluster_simple' else
+                      [(self.config.min_samples, '近簇下限', '#d9534f')])
+        if self.config.endpoint_depth_mode != 'near_cluster_simple':
+            thresholds.append((self.config.full_samples, '历史样本评分满分', '#68778b'))
+        for threshold, label, color in thresholds:
             y = chart.bottom() - threshold / max_n * chart.height()
             p.setPen(QtGui.QPen(QtGui.QColor(color), 1, QtCore.Qt.DashLine))
             p.drawLine(QtCore.QPointF(chart.left(), y), QtCore.QPointF(chart.right(), y))

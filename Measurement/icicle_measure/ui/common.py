@@ -58,7 +58,7 @@ class ConfigDialog(QtWidgets.QDialog):
         self.resize(540, 700)
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(QtWidgets.QLabel('全部参数可保存/加载；修改后须重新计算。初始阈值尚未经过真实相机标定。'))
-        self.editor = QtWidgets.QPlainTextEdit(json.dumps(asdict(config), ensure_ascii=False, indent=2))
+        self.editor = QtWidgets.QPlainTextEdit(json.dumps(config.active_dict(), ensure_ascii=False, indent=2))
         self.editor.setFont(QtWidgets.QApplication.font())
         layout.addWidget(self.editor)
         buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)

@@ -6,7 +6,7 @@ from pathlib import Path
 from dataclasses import asdict
 import cv2
 import numpy as np
-from .models import Frame, Detection, Intrinsics, Config
+from .models import Frame, Detection, Intrinsics, Config, DEPTH_MIN_M, DEPTH_MAX_M
 from .render import overlay
 
 
@@ -106,7 +106,7 @@ def load_files(rgb_path, depth_path, detection_path, metadata_path):
     if depth.ndim != 2 or depth.dtype.kind not in 'uif' or depth.dtype.itemsize < 2:
         raise ValueError('深度须为单通道 16 位以上整数或浮点数组；8 位/彩色预览图不可测距')
     depth = depth.astype(np.float64) * scale
-    valid_range = meta.get('valid_range_m', [0.1, 10.0])
+    valid_range = meta.get('valid_range_m', [DEPTH_MIN_M, DEPTH_MAX_M])
     if not isinstance(valid_range, (list, tuple)) or len(valid_range) != 2:
         raise ValueError('valid_range_m 必须为 [最小米值, 最大米值]')
     frame = Frame(rgb, depth, *valid_range)
@@ -183,11 +183,25 @@ def save_input_bundle(directory, frame, detections, intrinsics):
 def export_results(directory, frame, detections, result):
     root = Path(directory)
     root.mkdir(parents=True, exist_ok=True)
-    write_json(root / 'measurement.json', asdict(result))
+    payload = asdict(result)
+    simple = result.config.get('endpoint_depth_mode') == 'near_cluster_simple'
+    if simple:
+        # Keep the runtime/legacy schema intact; omit inactive fields only in new exports.
+        inactive = ('gap_m', 'membership', 'score', 'scores', 'anchor', 'plane',
+                    'growth', 'coverage', 'consecutive_passes', 'advisories')
+        for obj in payload['objects']:
+            for ep in obj['endpoints']:
+                ep.pop('confidence', None)
+                for record in ep['history']:
+                    for key in inactive:
+                        record.pop(key, None)
+    write_json(root / 'measurement.json', payload)
     write_json(root / 'config.json', result.config)
     fields = ['id', 'status', 'reason', 'distance_m', 'endpoint', 'endpoint_status',
               'endpoint_reason', 'u_px', 'v_px', 'depth_m', 'x_m', 'y_m', 'z_m', 'confidence', 'radius_px',
               'input_kind', 'measurement_label', 'scale_source', 'intrinsics_source', 'depth_variant']
+    if simple:
+        fields.remove('confidence')
     with (root / 'measurement.csv').open('w', newline='', encoding='utf-8-sig') as stream:
         writer = csv.DictWriter(stream, fields)
         writer.writeheader()
@@ -199,9 +213,12 @@ def export_results(directory, frame, detections, result):
             for ep in obj.endpoints:
                 xyz = ep.xyz_m or (None, None, None)
                 pixel = ep.pixel or (None, None)
-                writer.writerow(dict(common, endpoint=ep.name, endpoint_status=ep.status,
+                row = dict(common, endpoint=ep.name, endpoint_status=ep.status,
                                      endpoint_reason=ep.reason, u_px=pixel[0], v_px=pixel[1], depth_m=ep.depth_m,
                                      x_m=xyz[0], y_m=xyz[1], z_m=xyz[2], confidence=ep.confidence,
-                                     radius_px=ep.history[-1].radius if ep.history else None))
+                                     radius_px=ep.history[-1].radius if ep.history else None)
+                if simple:
+                    row.pop('confidence')
+                writer.writerow(row)
     write_image(root / 'overlay.png', overlay(frame, detections, result))
     return root

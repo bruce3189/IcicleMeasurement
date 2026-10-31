@@ -14,6 +14,20 @@ from icicle_measure.io import (load_bundle, save_simulation, export_results, loa
 from tests.helpers import temporary_directory
 
 
+# Historical evidence contract; new default behavior is covered separately by
+# test_near_cluster_simple.py. Do not silently apply old 80-point/anchor gates
+# to the current near-first algorithm.
+from dataclasses import dataclass
+_CurrentConfig, _measure_current = Config, measure_frame
+@dataclass
+class Config(_CurrentConfig):
+    radii: tuple = (3, 5, 8, 12, 18, 25, 35, 45, 60)
+    endpoint_depth_mode: str = 'near_cluster_mean'
+def measure_frame(*args, **kwargs):
+    if len(args) < 4 and kwargs.get('config') is None:
+        kwargs['config'] = Config()
+    return _measure_current(*args, **kwargs)
+
 class MeasurementTests(unittest.TestCase):
     def run_scene(self, name, seed=42, **kwargs):
         s = generate(name, seed)
@@ -89,12 +103,15 @@ class MeasurementTests(unittest.TestCase):
     def test_multi_and_image_edge(self):
         _, result = self.run_scene('multi')
         self.assertEqual([o.status for o in result.objects], ['accepted', 'accepted', 'skipped'])
-        # 图像边缘：检测框短边仅 17 px，窗口半径被截断到 8 px 后仍达不到
-        # 连续扩窗判定要求，按 README「到达短边上限仍未通过立即拒绝」拒绝。
-        _, result = self.run_scene('edge')
-        self.assertEqual(result.objects[0].status, 'rejected')
-        self.assertTrue(all(ep.status == 'rejected' for ep in result.objects[0].endpoints))
-        self.assertTrue(all('短边搜索上限' in (ep.reason or '') for ep in result.objects[0].endpoints))
+        # 图像边缘：检测框短边仅 17 px，窗口半径被截断到 8 px。单窗通过即接受后，
+        # 第三个窗口达标即输出；仍要求先有窗记录才可能满足跨窗比较项。
+        s, result = self.run_scene('edge')
+        obj = result.objects[0]
+        self.assertEqual(obj.status, 'accepted')
+        self.assertLess(abs(obj.distance_m - s.truth[obj.id]['distance_m']), .002)
+        self.assertTrue(all(ep.status == 'accepted' for ep in obj.endpoints))
+        self.assertTrue(all(max(r.consecutive_passes for r in ep.history) == 1
+                            for ep in obj.endpoints))
 
     def test_shared_membership_ignores_new_area(self):
         a = WindowRecord(3, (0, 0, 3, 3), valid_ids=[1, 2, 3], target_ids=[1, 2])

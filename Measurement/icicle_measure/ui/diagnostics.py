@@ -39,6 +39,22 @@ class MeasurementCriteriaPanel(QtWidgets.QWidget):
         self.window_choice.blockSignals(False)
         self.refresh()
 
+    def refresh_simple(self, ep, cfg, r, index):
+        rows = [
+            ('近簇样本数', str(r.near_count), '> %d' % cfg.near_min_exclusive, r.checks.get('near_samples'), 'MAD去噪后保留的当前冰凌候选像素'),
+            ('双群分离度 S', '—' if r.separation is None else '%.3f' % r.separation, '> %.2f' % cfg.separation_min_exclusive, r.checks.get('separation'), '两群均值差 / 两群方差和的平方根'),
+            ('远簇比较样本', str(r.far_count), '> %d' % cfg.far_min_exclusive, r.checks.get('far_samples'), '远参考簇的有效样本数量；不要求占近簇的固定比例'),
+            ('估计深度变化', '不适用' if r.center_change_m is None else '%.3f mm' % (r.center_change_m*1000), '仅记录，不拒绝', None, '同端点相邻可估深窗口的均值变化；首窗无此量'),
+        ]
+        self.table.setRowCount(len(rows))
+        for row, (name, value, requirement, passed, meaning) in enumerate(rows):
+            state = '仅记录' if row == 3 else '未评估' if passed is None else '通过' if passed else '未通过'
+            for col, text in enumerate((name, value, requirement, state, meaning)):
+                self.table.setItem(row, col, QtWidgets.QTableWidgetItem(text))
+        self.table.resizeRowsToContents()
+        self.summary.setText('近簇、远簇数量与分离度同时达标即输出；否则扩至短边上限并拒绝；无评分。\n端点状态：%s；第%d/%d窗。%s' %
+                             (STATUS.get(ep.status, ep.status), index+1, len(ep.history), '；'.join(r.reasons)))
+
     def refresh(self, *_):
         self.table.setRowCount(0)
         self.summary.setToolTip('')
@@ -48,6 +64,9 @@ class MeasurementCriteriaPanel(QtWidgets.QWidget):
             return
         ep, cfg = self.endpoint, self.config
         r = ep.history[index]
+        if cfg.endpoint_depth_mode == 'near_cluster_simple':
+            self.refresh_simple(ep, cfg, r, index)
+            return
         streak = r.consecutive_passes
         fmt = lambda value, factor=1: '—' if value is None else '%.3f' % (value * factor)
         tol = max(cfg.center_abs_m, cfg.center_rel * (r.center_m or 0))
@@ -79,7 +98,7 @@ class MeasurementCriteriaPanel(QtWidgets.QWidget):
              '≤ %.1f mm' % (cfg.growth_mean_max_m * 1000), 'ring',
              '新增目标均值与保留目标均值的差；近簇近似模式仅提示，严格模式要求通过'),
             ('综合规则评分', fmt(r.score), '≥ %.2f' % cfg.confidence_min, 'confidence', '原四项评分的最小值；其余硬条件还须逐项通过，评分不是概率'),
-            ('连续通过次数', str(streak), '≥ %d' % cfg.consecutive, None, '单窗达标不足以输出端点深度'),
+            ('连续通过次数', str(streak), '≥ %d' % cfg.consecutive, None, '本窗全部硬条件与评分达标即接受；首窗缺跨窗比较项，不能通过'),
         ]
         self.table.setRowCount(len(rows))
         for row, (name, value, requirement, key, meaning) in enumerate(rows):
@@ -162,3 +181,11 @@ class DiagnosticsPlot(QtWidgets.QWidget):
             widget.set_data(endpoint, depth, detection)
         self.terrain.set_data(endpoint, depth, detection, intrinsics)
         self.criteria.set_data(endpoint, config)
+        if config.endpoint_depth_mode == 'near_cluster_simple':
+            self.guides[self.window_counts] = ('看扩窗样本量：近簇与目标候选为同一组，不相加；'
+                '近簇>%d、远簇>%d、S>%g同时满足即接受；均值变化仅记录。' %
+                (config.near_min_exclusive, config.far_min_exclusive, config.separation_min_exclusive))
+        else:
+            self.guides[self.window_counts] = ('看扩窗是否积累足够样本：目标候选包含在近簇中。'
+                '历史模式还需空间与稳定性条件通过。')
+        self.update_guide()

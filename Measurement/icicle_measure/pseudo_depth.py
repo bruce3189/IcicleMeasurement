@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 import cv2
 import numpy as np
 from scipy.ndimage import gaussian_filter, gaussian_filter1d, distance_transform_edt
-from .models import Detection, Frame, Intrinsics
+from .models import Detection, Frame, Intrinsics, DEPTH_MIN_M, DEPTH_MAX_M
 from .pseudo_geometry import apply_background_planes
 from .io import read_image, write_image, write_json, read_json, load_detections
 
@@ -431,7 +431,7 @@ def compose_scene(scene, config=None, cancel=lambda: False):
     uncertainty[wrong_edge] |= 64
     observed_raw = to_z16(observed, config.depth_scale_m_per_unit)
     observed_m = observed_raw.astype(np.float32) * config.depth_scale_m_per_unit
-    max_depth = max(config.far_m * 2, float(observed_m.max()) * 1.01, .1)
+    max_depth = DEPTH_MAX_M
     provenance = {'input_kind': 'pseudo_rgbd', 'emulated_model': 'D435i_aligned_color_Z16',
         'is_synthetic': True, 'measurement_label': '基于伪深度的估计距离',
         'scale_source': 'manually_assumed_not_calibrated', 'intrinsics_source': config.intrinsics_source,
@@ -452,8 +452,8 @@ def compose_scene(scene, config=None, cancel=lambda: False):
         'source_map_legend': {'0': 'invalid', '1': 'model_background', '2': 'assumed_surface', '3': 'manual_surface'},
         'uncertainty_bits': {'1': 'padding_or_nonfinite_model', '2': 'unmeasured_assumed_surface', '4': 'mask_review', '8': 'overlap',
                              '16': 'hole', '32': 'background_return', '64': 'boundary_error'}}
-    frame = Frame(scene.rgb, observed_m, .001, max_depth, dict(provenance, depth_variant='observed'))
-    clean_frame = Frame(scene.rgb, clean_m, .001, max_depth, dict(provenance, depth_variant='complete'))
+    frame = Frame(scene.rgb, observed_m, DEPTH_MIN_M, max_depth, dict(provenance, depth_variant='observed'))
+    clean_frame = Frame(scene.rgb, clean_m, DEPTH_MIN_M, max_depth, dict(provenance, depth_variant='complete'))
     report = {'objects': reports, 'mapping': mapping, 'background_planes': plane_reports, 'target_pixels': int(objects.sum()),
               'hole_pixels': int(holes.sum()), 'return_pixels': int(returns.sum()),
               'boundary_error_pixels': int(wrong_edge.sum()), 'overlap_pixels': int(overlap.sum()),

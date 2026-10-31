@@ -16,6 +16,19 @@ from icicle_measure.io import export_results
 from tests.helpers import temporary_directory
 
 
+# Historical evidence contract; new default behavior is covered separately by
+# test_near_cluster_simple.py. Do not silently apply old 80-point/anchor gates
+# to the current near-first algorithm.
+from dataclasses import dataclass
+_CurrentConfig, _measure_current = Config, measure_frame
+@dataclass
+class Config(_CurrentConfig):
+    endpoint_depth_mode: str = 'near_cluster_mean'
+def measure_frame(*args, **kwargs):
+    if len(args) < 4 and kwargs.get('config') is None:
+        kwargs['config'] = Config()
+    return _measure_current(*args, **kwargs)
+
 class WindowEvidenceTests(unittest.TestCase):
     def test_slope_bias_is_rejected_without_using_model_prediction(self):
         s = generate('slope_bias')
@@ -94,7 +107,8 @@ class WindowEvidenceTests(unittest.TestCase):
 
     def test_dense_radius_steps_cannot_manufacture_consecutive_passes(self):
         s = generate('clean')
-        cfg = Config(radii=(3, 5, 8, 9, 10, 11))
+        # 该用例检验两窗确认机制本身，默认值已改为单窗通过即接受，故显式固定为 2。
+        cfg = Config(radii=(3, 5, 8, 9, 10, 11), consecutive=2)
         obj = measure_frame(s.frame, s.detections, s.intrinsics, cfg).objects[0]
         self.assertEqual(obj.status, 'rejected')
         for ep in obj.endpoints:
